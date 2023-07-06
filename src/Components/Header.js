@@ -4,6 +4,7 @@ import "./Header.css";
 import { RxDoubleArrowDown } from "react-icons/rx";
 import { GoArrowUpLeft } from "react-icons/go";
 import { Link } from "react-scroll";
+import { PiQrCodeLight } from "react-icons/pi";
 
 const Header = () => {
   const [showArrow, setShowArrow] = useState(true);
@@ -39,7 +40,10 @@ const Header = () => {
   return (
     <div className="background">
       <header className="header">
-        <div className="logo">Quest Reach</div>
+        <div className="logo">
+          <PiQrCodeLight />
+          Quest Reach
+        </div>
         <nav>
           <Link
             activeClass="active"
