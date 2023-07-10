@@ -7,6 +7,9 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.4.0",
+    "base64-js": "^1.5.1",
+    "browserify-zlib": "^0.2.0",
+    "qrcode": "^1.5.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.45.1",
@@ -17,6 +20,7 @@
     "react-scroll": "^1.8.9",
     "react-slick": "^0.29.0",
     "slick-carousel": "^1.8.1",
+    "vcard-parser": "^1.0.0",
     "vcards-js": "^2.10.0",
     "web-vitals": "^2.1.4"
   },

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { GiBranchArrow } from "react-icons/gi";
 import "./Body.css";
@@ -13,24 +13,42 @@ import NormalQR from "../Imgs/NormalQR.png";
 import AIQR1 from "../Imgs/AIQR1.png";
 import AIQR2 from "../Imgs/AIQR2.png";
 import AIQR3 from "../Imgs/AIQR3.png";
+import QRCode from "qrcode";
 
 const Body = () => {
-  const { register, handleSubmit } = useForm();
+  const { register, handleSubmit, watch } = useForm();
   const [isContentVisible, setIsContentVisible] = useState(false);
   const [qrCode, setQrCode] = useState(null);
   const fileInput = useRef();
   const [image, setImage] = useState(null);
+  const [paymentCompleted, setPaymentCompleted] = useState(true);
+  const [aiPromptAttempts, setAiPromptAttempts] = useState(0);
   const projectImages = [AIQR1, AIQR2, AIQR3];
+  const [qrStyle, setQrStyle] = useState(null);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const watchedQrStyle = watch("qrStyle", qrStyle);
 
   const handleImageChange = (event) => {
     if (event.target.files && event.target.files[0]) {
       setImage(URL.createObjectURL(event.target.files[0]));
     }
   };
+  const handleAiPromptChange = (e) => {
+    setAiPrompt(e.target.value);
+  };
+
   const toggleContent = () => {
     setIsContentVisible(!isContentVisible);
   };
+  console.log("this is khara: " + qrStyle);
 
+  useEffect(() => {
+    if (qrStyle === "ai") {
+      // handle ai actions
+    } else if (qrStyle === "normal") {
+      // handle normal actions
+    }
+  }, [qrStyle]);
   const onSubmit = async (data) => {
     const {
       firstName,
@@ -48,15 +66,61 @@ const Body = () => {
       instantMessage,
     } = data;
 
-    console.log(data);
-
     const formData = new FormData();
     Object.keys(data).forEach((key) => formData.append(key, data[key]));
     if (fileInput.current.files[0]) {
       formData.append("image", fileInput.current.files[0]);
     }
 
+    if (qrStyle === null) {
+      alert("Please choose a QR code style before proceeding.");
+      return;
+    }
+
     try {
+      // If the user selected ai qr code style and has not completed payment
+      if (data.qrStyle === "ai" && !paymentCompleted) {
+        // Trigger payment modal here ( show the payment in other words)
+        // After payment is successful, setPaymentCompleted(true)
+        // Here we make a POST request to your payment API
+        const paymentResponse = await axios.post(
+          "http://localhost:8000/payment",
+          {
+            amount: 2.99, // Set the amount to the correct price for the AI QR code
+          }
+        );
+
+        if (paymentResponse.data.success) {
+          setPaymentCompleted(true);
+        } else {
+          alert("Payment unsuccessful. Please try again.");
+          return;
+        }
+      }
+      if (data.qrStyle === "ai" && paymentCompleted) {
+        // show the prompt ( actually maybe, show like a box on top of the generate button which would act like a prompt sumbition)
+      }
+
+      // If the user selected normal qr code style and has not completed payment
+      if (data.qrStyle === "normal" && !paymentCompleted) {
+        // Trigger payment modal here
+        // After payment is successful, setPaymentCompleted(true)
+        // Here we make a POST request to your payment API
+        const paymentResponse = await axios.post(
+          "http://localhost:8000/payment",
+          {
+            amount: 0.99, // Set the amount to the correct price for the normal QR code
+          }
+        );
+
+        if (paymentResponse.data.success) {
+          setPaymentCompleted(true);
+        } else {
+          alert("Payment unsuccessful. Please try again.");
+          return;
+        }
+      }
+
       const response = await axios.post(
         "http://localhost:8000/contact",
         formData,
@@ -66,9 +130,23 @@ const Body = () => {
           },
         }
       );
-
-      console.log(response.data);
       setQrCode(response.data.qrCode);
+
+      QRCode.toDataURL(
+        response.data,
+        {
+          errorCorrectionLevel: "L", // Low error correction level
+        },
+        function (err, url) {
+          if (err) console.error(err);
+          else setQrCode(url);
+        }
+      );
+
+      if (qrStyle === "ai" && paymentCompleted) {
+        // add aiPrompt to formData
+        formData.append("aiPrompt", aiPrompt);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -242,7 +320,12 @@ const Body = () => {
           <div className="qr-selection">
             <div className="radio-group">
               <label style={{ marginRight: "20px" }}>
-                <input type="radio" value="normal" {...register("qrStyle")} />
+                <input
+                  type="radio"
+                  value="normal"
+                  {...register("qrStyle")}
+                  onChange={(e) => setQrStyle(e.target.value)}
+                />
                 Normal QR Code - $0.99
                 <div
                   style={{
@@ -264,7 +347,12 @@ const Body = () => {
                 </div>
               </label>
               <label style={{ marginRight: "20px" }}>
-                <input type="radio" value="ai" {...register("qrStyle")} />
+                <input
+                  type="radio"
+                  value="ai"
+                  {...register("qrStyle")}
+                  onChange={(e) => setQrStyle(e.target.value)}
+                />
                 AI Styled QR Code - $2.99
                 <div
                   style={{
@@ -288,7 +376,24 @@ const Body = () => {
                   </Slider>
                 </div>
               </label>
+
+              {qrStyle === "ai" && paymentCompleted && (
+                <div style={{ textAlign: "center" }}>
+                  <input
+                    type="text"
+                    placeholder="Enter AI Prompt"
+                    value={aiPrompt}
+                    onChange={handleAiPromptChange}
+                    style={{
+                      margin: "55px auto",
+                      position: "absolute",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              )}
             </div>
+
             <button type="submit">Generate QR Code</button>
           </div>
           {qrCode && (
