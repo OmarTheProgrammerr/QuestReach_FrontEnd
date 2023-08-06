@@ -158,3 +158,16 @@ button:hover {
   height: 180px; /* adjust this value to match the height of pic4 */
   object-fit: cover; /* this will scale the image to cover the element */
 }
+.theresult {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  width: 100%;
+}
+.theresult img {
+  max-width: 100%;
+  max-height: 100%;
+}

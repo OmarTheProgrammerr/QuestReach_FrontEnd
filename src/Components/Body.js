@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { GiBranchArrow } from "react-icons/gi";
 import "./Body.css";
+import ContactInfo from "./ContactInfo";
+import QRCodeDisplay from "./QRCodeDisplay";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -27,6 +29,8 @@ const Body = () => {
   const [qrStyle, setQrStyle] = useState(null);
   const [aiPrompt, setAiPrompt] = useState("");
   const watchedQrStyle = watch("qrStyle", qrStyle);
+  const [paymentPrice, setPaymentPrice] = useState(0); // New paymentPrice state variable
+  const [contactData, setContactData] = useState({});
 
   const handleImageChange = (event) => {
     if (event.target.files && event.target.files[0]) {
@@ -40,13 +44,12 @@ const Body = () => {
   const toggleContent = () => {
     setIsContentVisible(!isContentVisible);
   };
-  console.log("this is khara: " + qrStyle);
 
   useEffect(() => {
     if (qrStyle === "ai") {
-      // handle ai actions
+      setPaymentPrice(2.99); // AI QR code price
     } else if (qrStyle === "normal") {
-      // handle normal actions
+      setPaymentPrice(0.99); // Normal QR code price
     }
   }, [qrStyle]);
   const onSubmit = async (data) => {
@@ -79,14 +82,11 @@ const Body = () => {
 
     try {
       // If the user selected ai qr code style and has not completed payment
-      if (data.qrStyle === "ai" && !paymentCompleted) {
-        // Trigger payment modal here ( show the payment in other words)
-        // After payment is successful, setPaymentCompleted(true)
-        // Here we make a POST request to your payment API
+      if (qrStyle && !paymentCompleted) {
         const paymentResponse = await axios.post(
           "http://localhost:8000/payment",
           {
-            amount: 2.99, // Set the amount to the correct price for the AI QR code
+            amount: paymentPrice, // Use paymentPrice
           }
         );
 
@@ -130,23 +130,26 @@ const Body = () => {
           },
         }
       );
-      setQrCode(response.data.qrCode);
-
-      QRCode.toDataURL(
-        response.data,
-        {
-          errorCorrectionLevel: "L", // Low error correction level
-        },
-        function (err, url) {
-          if (err) console.error(err);
-          else setQrCode(url);
-        }
-      );
+      setContactData(data);
+      //setQrCode(response.data.qrCode);
 
       if (qrStyle === "ai" && paymentCompleted) {
         // add aiPrompt to formData
         formData.append("aiPrompt", aiPrompt);
       }
+      const contactId = response.data.id; // Get contact ID from server response
+      const BASE_URL =
+        process.env.REACT_APP_BASE_URL || "http://localhost:8000";
+      const qrUrl = `${BASE_URL}/contact/${contactId}`;
+
+      QRCode.toDataURL(
+        qrUrl, // Generate QR code with contact ID
+        { errorCorrectionLevel: "L" },
+        function (err, url) {
+          if (err) console.error(err);
+          else setQrCode(url);
+        }
+      );
     } catch (error) {
       console.error(error);
     }
@@ -191,6 +194,11 @@ const Body = () => {
             style={{ display: "none" }}
           />
         </div>
+
+        {Object.keys(contactData).length > 0 && (
+          <ContactInfo contactData={contactData} />
+        )}
+
         <div className="form-inputs">
           <input
             type="file"
@@ -396,12 +404,7 @@ const Body = () => {
 
             <button type="submit">Generate QR Code</button>
           </div>
-          {qrCode && (
-            <div>
-              <h2>Your QR Code:</h2>
-              <img src={qrCode} alt="Your generated QR code" />
-            </div>
-          )}
+          {qrCode && <QRCodeDisplay qrCode={qrCode} />}
         </div>
       </form>
     </div>
