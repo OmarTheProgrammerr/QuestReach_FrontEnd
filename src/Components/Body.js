@@ -84,7 +84,7 @@ const Body = () => {
       // If the user selected ai qr code style and has not completed payment
       if (qrStyle && !paymentCompleted) {
         const paymentResponse = await axios.post(
-          "http://localhost:8000/payment",
+          "https://questreach-1a7d7eb0fdf4.herokuapp.com/payment",
           {
             amount: paymentPrice, // Use paymentPrice
           }
@@ -107,7 +107,7 @@ const Body = () => {
         // After payment is successful, setPaymentCompleted(true)
         // Here we make a POST request to your payment API
         const paymentResponse = await axios.post(
-          "http://localhost:8000/payment",
+          "https://questreach-1a7d7eb0fdf4.herokuapp.com/payment",
           {
             amount: 0.99, // Set the amount to the correct price for the normal QR code
           }
@@ -122,7 +122,7 @@ const Body = () => {
       }
 
       const response = await axios.post(
-        "http://localhost:8000/contact",
+        "https://questreach-1a7d7eb0fdf4.herokuapp.com/contact",
         formData,
         {
           headers: {
