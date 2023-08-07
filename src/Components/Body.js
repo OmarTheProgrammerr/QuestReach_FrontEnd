@@ -47,11 +47,27 @@ const Body = () => {
 
   useEffect(() => {
     if (qrStyle === "ai") {
-      setPaymentPrice(2.99); // AI QR code price
+      setPaymentPrice(2.99);
     } else if (qrStyle === "normal") {
-      setPaymentPrice(0.99); // Normal QR code price
+      setPaymentPrice(0.99);
     }
   }, [qrStyle]);
+
+  const saveContact = async (contact) => {
+    try {
+      const response = await axios.post("/contact", contact);
+
+      if (!response || !response.data || !response.data.url) {
+        throw new Error("Failed to save contact or no data in response.");
+      }
+
+      const qrCode = response.data.url;
+      const qrCodeParts = qrCode.split("/");
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const onSubmit = async (data) => {
     const {
       firstName,
@@ -81,12 +97,11 @@ const Body = () => {
     }
 
     try {
-      // If the user selected ai qr code style and has not completed payment
       if (qrStyle && !paymentCompleted) {
         const paymentResponse = await axios.post(
           "https://questreach-1a7d7eb0fdf4.herokuapp.com/payment",
           {
-            amount: paymentPrice, // Use paymentPrice
+            amount: paymentPrice,
           }
         );
 
@@ -101,15 +116,11 @@ const Body = () => {
         // show the prompt ( actually maybe, show like a box on top of the generate button which would act like a prompt sumbition)
       }
 
-      // If the user selected normal qr code style and has not completed payment
       if (data.qrStyle === "normal" && !paymentCompleted) {
-        // Trigger payment modal here
-        // After payment is successful, setPaymentCompleted(true)
-        // Here we make a POST request to your payment API
         const paymentResponse = await axios.post(
           "https://questreach-1a7d7eb0fdf4.herokuapp.com/payment",
           {
-            amount: 0.99, // Set the amount to the correct price for the normal QR code
+            amount: 0.99,
           }
         );
 
@@ -130,20 +141,20 @@ const Body = () => {
           },
         }
       );
+      console.log(response.data);
       setContactData(data);
-      //setQrCode(response.data.qrCode);
 
       if (qrStyle === "ai" && paymentCompleted) {
-        // add aiPrompt to formData
         formData.append("aiPrompt", aiPrompt);
       }
-      const contactId = response.data.id; // Get contact ID from server response
+      const contactId = response.data.id;
       const BASE_URL =
-        process.env.REACT_APP_BASE_URL || "http://localhost:8000";
-      const qrUrl = `${BASE_URL}/contact/${contactId}`;
+        process.env.REACT_APP_BASE_URL ||
+        "https://questreach-1a7d7eb0fdf4.herokuapp.com/";
+      const qrUrl = `${BASE_URL}contact/${contactId}`;
 
       QRCode.toDataURL(
-        qrUrl, // Generate QR code with contact ID
+        qrUrl,
         { errorCorrectionLevel: "L" },
         function (err, url) {
           if (err) console.error(err);
