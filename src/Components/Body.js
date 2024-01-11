@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { GiBranchArrow } from "react-icons/gi";
 import "./Body.css";
@@ -9,7 +9,6 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { GoPersonAdd } from "react-icons/go";
 import axios from "axios";
-import { Carousel } from "react-responsive-carousel";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import NormalQR from "../Imgs/NormalQR.png";
 import AIQR1 from "../Imgs/AIQR1.png";
@@ -18,18 +17,17 @@ import AIQR3 from "../Imgs/AIQR3.png";
 import QRCode from "qrcode";
 
 const Body = () => {
+  const BASE_URL =
+    process.env.REACT_APP_BASE_URL ||
+    "https://questreach-b488afd07f16.herokuapp.com";
   const { register, handleSubmit, watch } = useForm();
   const [isContentVisible, setIsContentVisible] = useState(false);
   const [qrCode, setQrCode] = useState(null);
   const fileInput = useRef();
-  const [image, setImage] = useState(null);
-  const [paymentCompleted, setPaymentCompleted] = useState(true);
-  const [aiPromptAttempts, setAiPromptAttempts] = useState(0);
   const projectImages = [AIQR1, AIQR2, AIQR3];
   const [qrStyle, setQrStyle] = useState(null);
+  const [image, setImage] = useState(null);
   const [aiPrompt, setAiPrompt] = useState("");
-  const watchedQrStyle = watch("qrStyle", qrStyle);
-  const [paymentPrice, setPaymentPrice] = useState(0); // New paymentPrice state variable
   const [contactData, setContactData] = useState({});
 
   const handleImageChange = (event) => {
@@ -45,14 +43,6 @@ const Body = () => {
     setIsContentVisible(!isContentVisible);
   };
 
-  useEffect(() => {
-    if (qrStyle === "ai") {
-      setPaymentPrice(2.99);
-    } else if (qrStyle === "normal") {
-      setPaymentPrice(0.99);
-    }
-  }, [qrStyle]);
-
   const saveContact = async (contact) => {
     try {
       const response = await axios.post("/contact", contact);
@@ -66,6 +56,68 @@ const Body = () => {
     } catch (error) {
       console.error(error);
     }
+  };
+  const createVCard = (data) => {
+    const {
+      firstName,
+      lastName,
+      company,
+      phoneNumber,
+      email,
+      address,
+      url,
+      ringtone,
+      textTone,
+      date,
+      relatedName,
+      socialProfile,
+      instantMessage,
+      prefix,
+      phoneticFirstName,
+      pronunciationFirstName,
+      middleName,
+      phoneticLastName,
+      maidenName,
+      suffix,
+      nickname,
+      jobTitle,
+      department,
+      phoneticCompanyName,
+      // Add more fields if needed
+    } = data;
+
+    const formatNameField = (name) => name || "";
+
+    return [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      `N:${formatNameField(lastName)};${formatNameField(firstName)};;;`,
+      `FN:${[firstName, lastName].filter(Boolean).join(" ")}`,
+      jobTitle ? `TITLE:${jobTitle}` : "",
+      department ? `ROLE:${department}` : "",
+      phoneNumber ? `TEL;TYPE=voice,work,pref:${phoneNumber}` : "",
+      email ? `EMAIL;TYPE=internet,pref:${email}` : "",
+      address ? `ADR;TYPE=work,pref:;;${address}` : "",
+      url ? `URL:${url}` : "",
+      date ? `BDAY:${date}` : "",
+      relatedName ? `RELATED;TYPE=contact:${relatedName}` : "",
+      socialProfile ? `X-SOCIALPROFILE;TYPE=main:${socialProfile}` : "",
+      instantMessage ? `X-IM;TYPE=main:${instantMessage}` : "",
+      phoneticFirstName ? `X-PHONETIC-FIRST-NAME:${phoneticFirstName}` : "",
+      pronunciationFirstName
+        ? `X-PRONUNCIATION-FIRST-NAME:${pronunciationFirstName}`
+        : "",
+      phoneticLastName ? `X-PHONETIC-LAST-NAME:${phoneticLastName}` : "",
+      maidenName ? `X-MAIDEN-NAME:${maidenName}` : "",
+      phoneticCompanyName
+        ? `X-PHONETIC-COMPANY-NAME:${phoneticCompanyName}`
+        : "",
+      ringtone ? `X-RINGTONE:${ringtone}` : "",
+      textTone ? `X-TEXTTONE:${textTone}` : "",
+      "END:VCARD",
+    ]
+      .filter(Boolean)
+      .join("\n");
   };
 
   const onSubmit = async (data) => {
@@ -97,64 +149,48 @@ const Body = () => {
     }
 
     try {
-      if (qrStyle && !paymentCompleted) {
-        const paymentResponse = await axios.post(
-          "https://questreach-1a7d7eb0fdf4.herokuapp.com/payment",
-          {
-            amount: paymentPrice,
-          }
-        );
+      const response = await axios.post(`${BASE_URL}/contact`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
-        if (paymentResponse.data.success) {
-          setPaymentCompleted(true);
-        } else {
-          alert("Payment unsuccessful. Please try again.");
-          return;
-        }
-      }
-      if (data.qrStyle === "ai" && paymentCompleted) {
-        // show the prompt ( actually maybe, show like a box on top of the generate button which would act like a prompt sumbition)
-      }
-
-      if (data.qrStyle === "normal" && !paymentCompleted) {
-        const paymentResponse = await axios.post(
-          "https://questreach-1a7d7eb0fdf4.herokuapp.com/payment",
-          {
-            amount: 0.99,
-          }
-        );
-
-        if (paymentResponse.data.success) {
-          setPaymentCompleted(true);
-        } else {
-          alert("Payment unsuccessful. Please try again.");
-          return;
-        }
-      }
-
-      const response = await axios.post(
-        "https://questreach-1a7d7eb0fdf4.herokuapp.com/contact",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
       console.log(response.data);
       setContactData(data);
 
-      if (qrStyle === "ai" && paymentCompleted) {
+      if (qrStyle === "ai") {
         formData.append("aiPrompt", aiPrompt);
       }
       const contactId = response.data.id;
-      const BASE_URL =
-        process.env.REACT_APP_BASE_URL ||
-        "https://questreach-1a7d7eb0fdf4.herokuapp.com/";
-      const qrUrl = `${BASE_URL}contact/${contactId}`;
-
+      const qrUrl = `${BASE_URL}/contact/${contactId}`;
+      console.log(qrUrl);
       QRCode.toDataURL(
         qrUrl,
+        { errorCorrectionLevel: "L" },
+        function (err, url) {
+          if (err) console.error(err);
+          else setQrCode(url);
+        }
+      );
+    } catch (error) {
+      console.error(error);
+    }
+
+    try {
+      const response = await axios.post(`${BASE_URL}/contact`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setContactData(data);
+
+      // Create vCard string
+      const vCardString = createVCard(data);
+      console.log(vCardString);
+
+      QRCode.toDataURL(
+        vCardString,
         { errorCorrectionLevel: "L" },
         function (err, url) {
           if (err) console.error(err);
@@ -206,9 +242,9 @@ const Body = () => {
           />
         </div>
 
-        {Object.keys(contactData).length > 0 && (
+        {/* {Object.keys(contactData).length > 0 && (
           <ContactInfo contactData={contactData} />
-        )}
+        )} */}
 
         <div className="form-inputs">
           <input
@@ -396,7 +432,7 @@ const Body = () => {
                 </div>
               </label>
 
-              {qrStyle === "ai" && paymentCompleted && (
+              {qrStyle === "ai" && (
                 <div style={{ textAlign: "center" }}>
                   <input
                     type="text"
